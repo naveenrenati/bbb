@@ -18,7 +18,7 @@ aws.config.update({
 
 const s3 = new aws.S3();
 
-const uri = 'mongodb+srv://harika:admin@cluster0.fmro0q1.mongodb.net/?retryWrites=true&w=majority'; // Replace with your MongoDB Atlas URI
+const uri = 'mongodb+srv://naveen:naveen@cluster0.5tln1lv.mongodb.net?retryWrites=true&w=majority'; // Replace with your MongoDB Atlas URI
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
 app.use(bodyParser.json());
@@ -196,90 +196,6 @@ app.post('/api/saveMatrix', async (req, res) => {
 });
 
 
-////////////////////////////////////////////////
-///////to check email is already there or not///
-////////////////////////////////////////////////
-
-app.get('/check-email/:email', async (req, res) => {
-  const emailToCheck = req.params.email;
-  const db = client.db('userdetails');
-  const collection = db.collection('usersdetails');
-
-  try {
-    const existingUser = await collection.findOne({ email: emailToCheck });
-
-    if (existingUser) {
-      res.status(200).json({ exists: true });
-    } else {
-      res.status(200).json({ exists: false });
-    }
-  } catch (err) {
-    console.error('Error checking email:', err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-///////////////////////////
-//////////for signup//////
-/////////////////////////
-
-app.post('/signup', async (req, res) => {
-  const userData = req.body;
-  const db = client.db('userdetails');
-  const collection = db.collection('usersdetails');
-
-  try {
-    await collection.insertOne(userData);
-    res.status(200).json({ message: 'User data saved successfully' });
-  } catch (err) {
-    console.error('Error saving user data:', err);
-    res.status(500).json({ message: 'Failed to save user data' });
-  }
-});
-
-///////////////////////////
-//////////// for login////
-//////////////////////////
-
-app.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-  const db = client.db('userdetails');
-  const collection = db.collection('usersdetails');
-
-  try {
-    const user = await collection.findOne({ email, password });
-    if (user) {
-      res.status(200).json({ message: 'Login successful' });
-    } else {
-      res.status(401).json({ message: 'Login failed' });
-    }
-  } catch (err) {
-    console.error('Error during login:', err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-////////////////////////////
-/// to print user details///
-///////////////////////////
-
-app.get('/userdetails/:email', async (req, res) => {
-  const email = req.params.email;
-  const db = client.db('userdetails');
-  const collection = db.collection('usersdetails');
-
-  try {
-    const user = await collection.findOne({ email });
-    if (user) {
-      res.status(200).json({ email: user.email, username: user.username });
-    } else {
-      res.status(404).json({ message: 'User not found' });
-    }
-  } catch (err) {
-    console.error('Error fetching user details:', err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
 
 ////////////////////
 ///////table///////
@@ -354,7 +270,7 @@ app.delete('/delete/:email', async (req, res) => {
 //////////////////////////////////
 app.post('/addusers', async (req, res) => {
   const userData = req.body;
-  const db = client.db('userdetails');
+  const db = client.db('admintable');
   const collection = db.collection('usersdetails');
 
   try {
@@ -367,7 +283,7 @@ app.post('/addusers', async (req, res) => {
 });
 
 app.get('/getusers', async (req, res) => {
-  const db = client.db('userdetails');
+  const db = client.db('admintable');
   const collection = db.collection('usersdetails');
 
   try {
@@ -386,7 +302,7 @@ app.get('/getuserdetails', async (req, res) => {
     return res.status(400).json({ message: 'Please provide either email or phoneNumber in the query parameters.' });
   }
 
-  const db = client.db('userdetails');
+  const db = client.db('admintable');
   const collection = db.collection('usersdetails');
 
   try {
@@ -419,7 +335,7 @@ app.get('/getuserdetails', async (req, res) => {
 app.patch('/modify/users/modifyRole', async (req, res) => {
   try {
     const { email, newRole, database, collection } = req.body;
-    const db = client.db('userdetails');
+    const db = client.db('admintable');
     const usersCollection = db.collection('usersdetails');
 
     // Find the user by email and update the role
@@ -440,7 +356,7 @@ app.patch('/modify/users/modifyRole', async (req, res) => {
 app.get('/modify/users', async (req, res) => {
   try {
     const { role, database, collection } = req.query;
-    const db = client.db('userdetails');
+    const db = client.db('admintable');
     const usersCollection = db.collection('usersdetails');
 
     const filter = role ? { role } : {};
@@ -559,6 +475,283 @@ app.post('/api/login', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+///////////////////////////////
+///////////firebase-users///////////////////
+///////////////////////////////////
+
+
+
+app.post('/firebase', async (req, res) => {
+    try {
+        const { email, uid, role } = req.body; // Ensure correct extraction of user data
+
+        // Save user data to MongoDB Atlas
+        await saveToMongoDB({ email, uid, role });
+
+        res.status(200).json({ message: 'User data saved successfully' });
+    } catch (error) {
+        console.error('Error during signup:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+async function saveToMongoDB(userData) {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
+    try {
+        await client.connect();
+        const database = client.db('admintable');
+        const collection = database.collection('firebase-users');
+
+        // Insert user data into MongoDB
+        await collection.insertOne(userData);
+    } finally {
+        await client.close();
+    }
+}
+
+//////////////////////////////////////
+/////////carrier details///////////////////
+////////////////////////////////////////
+
+app.post('/carrierdetails', async (req, res) => {
+  try {
+      const { name, location } = req.body;
+
+      const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+      await client.connect();
+
+      const database = client.db('admintable');
+      const result = await database.collection('carrier-details').insertOne({
+          _id: new ObjectId(),
+          name,
+          location,
+      });
+
+      await client.close();
+
+      res.status(200).json({ message: 'Carrier details saved successfully', carrierId: result.insertedId });
+  } catch (error) {
+      console.error('Error saving carrier details:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/clientdetails', async (req, res) => {
+  try {
+      const { name, location, contact, comment,client_id } = req.body;
+
+      const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+      await client.connect();
+
+      const database = client.db('admintable');
+      const result = await database.collection('client-details').insertOne({
+          _id: new ObjectId(),
+          name,
+          location,
+          contact,
+          comment,
+          client_id,
+      });
+
+      await client.close();
+
+      res.status(200).json({ message: 'Client details saved successfully', clientId: result.insertedId });
+  } catch (error) {
+      console.error('Error saving client details:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+/////////////////////////////////////
+//////////////////cc mapping /////////
+/////////////////////////////////////
+app.get('/api/getClients', async (req, res) => {
+  try {
+    const db = client.db('admintable');
+    const collection = db.collection('client-details');
+    const clients = await collection.find().toArray();
+    res.json(clients);
+  } catch (error) {
+    console.error('Error fetching clients:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/api/getCarriers', async (req, res) => {
+  try {
+    const db = client.db('admintable');
+    const collection = db.collection('carrier-details');
+    const carriers = await collection.find().toArray();
+    res.json(carriers);
+  } catch (error) {
+    console.error('Error fetching carriers:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+const clientcarrierMapping = mongoose.model('clientcarrierMapping', {
+  client: String,
+  client_id: String,
+  carrier: String,
+  carrier_id: String,
+});
+
+
+app.post('/api/saveClientMapping1', async (req, res) => {
+  const { client, client_id, carrier, carrier_id } = req.body;
+
+  try {
+    const mapping = new clientcarrierMapping({
+
+      client_id,
+   
+      carrier_id,
+    });
+
+    await mapping.save();
+    
+    res.status(200).json({ success: true, message: 'Mapping data saved successfully' });
+  } catch (error) {
+    console.error('Error saving mapping data:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+/////////////////////////////////
+////////fetching mails //////
+//////////////////////////////////
+app.get('/api/getEmails', async (req, res) => {
+  try {
+    const db = client.db('admintable');
+    const collection = db.collection('firebase-users');
+    const emails = await collection.find().toArray();
+    res.json(emails);
+  } catch (error) {
+    console.error('Error fetching emails:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+
+const userclientMapping2 = mongoose.model('userclientMapping', {
+  client: String,
+  client_id: String,
+  email: String,
+  email_uid: String,
+});
+
+app.post('/api/saveClientMapping2', async (req, res) => {
+  const { client, client_id, email, email_uid} = req.body;
+
+  try {
+    const mapping = new userclientMapping2({
+
+      client_id,
+   
+      email_uid,
+    });
+
+    await mapping.save();
+    
+    res.status(200).json({ success: true, message: 'Mapping data saved successfully' });
+  } catch (error) {
+    console.error('Error saving mapping data:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+////////////////////////////
+///////////fetching ///////////
+/////////////////////////////////
+
+app.get('/api/getUids', async (req, res) => {
+  try {
+    const db = client.db('admintable'); // Replace with your actual database name
+    const collection = db.collection('userclientmappings'); // Replace with your actual collection name
+    const uids = await collection.find({}, { projection: { _id: 0, email_uid: 1 } }).toArray();
+    res.json(uids.map(({ email_uid }) => email_uid));
+  } catch (error) {
+    console.error('Error fetching UIDs:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/api/getDataByEmailUid', async (req, res) => {
+  const { email_uid } = req.query;
+
+  try {
+    const db = mongoose.connection.useDb('admintable');
+    const collection = db.collection('userclientmappings');
+
+    const data = await collection.find({ email_uid }).toArray();
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching data by email_uid:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+app.get('/api/getClientIds', async (req, res) => {
+  try {
+    const db = mongoose.connection.useDb('admintable');
+    const collection = db.collection('clientcarriermappings');
+
+    const clientIds = await collection.distinct('client_id');
+    res.json(clientIds);
+  } catch (error) {
+    console.error('Error fetching Client IDs:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// New route to fetch data by client_id
+app.get('/api/getDataByClientId', async (req, res) => {
+  const { client_id } = req.query;
+
+  try {
+    const db = mongoose.connection.useDb('admintable');
+    const collection = db.collection('clientcarriermappings');
+
+    const data = await collection.find({ client_id }).toArray();
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching data by client_id:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+//////////////////////////////////////////
+////////////////profile//////////////////////
+///////////////////////////////////////////
+app.get('/api/getProfileData', async (req, res) => {
+  const { email } = req.query;
+
+  try {
+    // Use the specified database and collection for profile data
+    const db = mongoose.connection.useDb('admintable');
+    const collection = db.collection('firebase-users');
+
+    // Fetch profile data based on the decrypted email
+    const profileData = await collection.findOne({ email });
+
+    if (!profileData) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    res.json(profileData);
+  } catch (error) {
+    console.error('Error fetching profile data:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 
 
